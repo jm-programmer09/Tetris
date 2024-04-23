@@ -12,21 +12,19 @@
 #define TETRIS
 
 // DEFINING
-#define TETRIS_ROW_GRIDS 19
-#define TETRIS_COLUMN_GRIDS 20 
-#define TETRIS_CENTER 9
+#define TETRIS_ROW_GRIDS 15
+#define TETRIS_COLUMN_GRIDS 30 
+#define TETRIS_CENTER 7
 // For the width and the height of the area
 #define GRID_SIZE 15
 // Window Sizing
 #define WINDOW_HEIGHT (GRID_SIZE * TETRIS_COLUMN_GRIDS) 
 #define WINDOW_WIDTH (GRID_SIZE * TETRIS_ROW_GRIDS)
 
-// ENUMS
-//enum class Grid {
-//	Blank,
-//	BlockRed,
-//	BlockBlue
-//};
+// For the timer
+constexpr int initial_timer_speed = 500;
+constexpr int speed_multiplier = 0.1;
+
 enum class Colour {
 	Blank,
 	Red,

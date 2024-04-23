@@ -12,12 +12,16 @@ class Game {
 public:
     GridT grid;
     Player player;
+    int player_respawns; // counting the amount of times a new block is spawned for increasing the speed
+    int player_score;
 
     Game(SDL_Renderer* renderer) :
         // Player initialisation
-        player(0, 0)
+        player(TETRIS_CENTER, 0)
     {
         this->canvas = renderer;
+        this->player_respawns = 0;
+        this->player_score = 0;
         
         // Loading the grid initially
         for (int column_index = 0; column_index < TETRIS_COLUMN_GRIDS; column_index++) {
@@ -27,12 +31,15 @@ public:
                 grid[column_index][row_index] = { false, Colour::Blank };
             }
         }
-
-        // THE REASON WHY THE OBJECT IS DISAPPEARING MIGHT HAVE SOMETHING TO DO WITH THE RENDER OF THE PLAYER MAP
+        
+        // Updated pause
+        Uint32 timer_pause = initial_timer_speed;
 
         // This is the timer for the moving down of the tetris element
-        SDL_TimerID timer = SDL_AddTimer(500, [](Uint32 interval, void* param) -> Uint32 {
+        SDL_TimerID timer = SDL_AddTimer(timer_pause, [](Uint32 interval, void* param) -> Uint32 {
             // Game instasnce
+            Uint32 timer_pause;
+
             Game* gameInstance = static_cast<Game*>(param);
 
             // TO make sure it can move down without any errors
@@ -44,7 +51,13 @@ public:
                 gameInstance->player.y++;
             }
 
-            return interval;
+            timer_pause = initial_timer_speed - (gameInstance->player_respawns * speed_multiplier);
+
+            if (timer_pause < 10) {
+                timer_pause = 10;
+            }
+
+            return timer_pause;
         }, this);
 
         if (timer == 0) {
@@ -58,13 +71,21 @@ public:
         // WOULD WE BE ABLE TO OPTIMIZE BY PUTTING THE RENDER OF THE ACTUAL GRID COMBINED WITH THE PLAYER RENDER?
 
         // Adding the current Player render to the grid can also be used to delete the old player
-
         changePlayer(player.colour);
 
+        // Here we will also have to check whether we need to clear the grid
+
+        bool clearRow = true;
         // RENDERING THE GRID
-        for (int column_index = 0; column_index < TETRIS_ROW_GRIDS; column_index++) {
+        for (int column_index = 0; column_index < TETRIS_COLUMN_GRIDS; column_index++) {
+            clearRow = true;
             for (int row_index = 0; row_index < TETRIS_ROW_GRIDS; row_index++) {
+
                 SDL_Rect grid_block = { GRID_SIZE * row_index, GRID_SIZE * column_index, GRID_SIZE, GRID_SIZE };
+
+                // Checking to see if it is blank
+                if (grid[column_index][row_index].colour == Colour::Blank) clearRow = false;
+
 
                 // This is where Colour::Blank is used
                 ColourMapT block_colour_properties = ColourMap.at(grid[column_index][row_index].colour);
@@ -72,9 +93,26 @@ public:
                 SDL_SetRenderDrawColor(canvas, block_colour_properties[0], block_colour_properties[1], block_colour_properties[2], block_colour_properties[3]);
 
                 SDL_RenderFillRect(canvas, &grid_block);
+                //row_index-- if the row is then cleared
+            }
+
+            // If the row needs clearing 
+            if (clearRow) {
+                // Adding to the player score - give it more of a variety than +1
+                player_score++;
+
+                for (int row_index = 0; row_index < TETRIS_ROW_GRIDS; row_index++) {
+                    grid[column_index][row_index] = { false, Colour::Blank };
+                }
+
+                column_index--;
+
+                SDL_Log("clearing the row now");
             }
         }        
     }
+
+    
 
     // For clearing the last position of the player - make sure to move the player after the function has been executed
     void changePlayer(Colour colour, bool isPlayer = true) {
@@ -163,7 +201,7 @@ public:
     // This is for flipping the player and detecting whether the flip is possible
     void flip() {
         // Making sure that the player doesnt flip to a stage that isnt available
-        SDL_Log(to_string(BlockMap.at(player.block).size()).c_str());
+        //SDL_Log(to_string(BlockMap.at(player.block).size()).c_str());
         if (player.current_rotation + 1 >= BlockMap.at(player.block).size()) {
             player.current_rotation = 0;
         }
@@ -188,6 +226,7 @@ private:
 
         // Creating the new player
         player = Player(TETRIS_CENTER, 0);
+        player_respawns++;
     }
 };
 
@@ -216,11 +255,6 @@ int SDL_main(int argc, char* argv[]) {
         return 1;
     }
 
-    //switch (static_cast<Block>(generateRandNum(0, 0))) {
-    //case Block::Void:
-    //    SDL_Log("Void");
-    //}
-
     Game game = Game(canvas);
 
 
@@ -231,6 +265,7 @@ int SDL_main(int argc, char* argv[]) {
     do {
         SDL_SetRenderDrawColor(canvas, 0, 0, 0, 255);
         SDL_RenderClear(canvas);
+        
 
         // Rendering items
         game.render();
