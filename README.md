@@ -1,5 +1,5 @@
 ## Tetris
-.exe not attached. SDL library required to run.
+To run the app, download the .exe, .pbd, .tff, and all .dll files
 
 # Note
 - For some reason, at the grid position y=19 the block start disappear regardless of the height of the game grid
